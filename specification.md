@@ -2,7 +2,7 @@
 
 ## About
 
-This is an informal specification that is precise enough to be used as an input for AI code generators like claude code. Generated code (grammar and parser) needs to be tested and manually checked. 
+This is an informal specification that aims to be precise enough to be used as an input for AI code generators like claude code. Generated code (grammar and parser) needs to be tested and manually checked. 
 
 ## MeDaLog Grammar
 
@@ -11,17 +11,17 @@ This is an informal specification that is precise enough to be used as an input 
 
 ## Definitions
 
-An *identifier* is a string consisting of alphanumeric characters and underscores, starting with a character or underscore. An identifiuer must not be souffle keyword. 
+An *identifier* is a string consisting of alphanumeric characters and underscores, starting with a character or underscore. An identifier must not be souffle keyword. 
 
-A *rule* is a datalog rule. Here the notion of rule also includes facts which can be considered as rule without a body (premisses). 
+A *rule* is a datalog rule. Here the notion of rule also includes facts which can be considered as rule without a body (i.e. without premisses). 
 
 
 ## Modules
 
-Rules (and facts) can be placed in modules. Modules have a unique *id* annotation of type identifier as defined below. 
+Rules (and facts) can be placed in modules. Modules are declared using the keyword module followed by a unique *id* of type identifier as defined below. 
 
 ```
-@id:"family"
+module family
 {
 	grandparent(x,y) :- parent(x,y), parent(y,z).
 	grandchild(x,y) :- grandparent(y,x).
@@ -54,7 +54,7 @@ where:
 Example:
 
 ```
-@id:"family" {
+module family {
 	@author: "John Doe"
 	@created: 2025-02-16T14:30:00Z
 	@last-modified: 2025-02-16T14:30:00Z
@@ -73,21 +73,23 @@ Module annotations precede modules, and have the following structure:
 @created: 2025-02-16T14:30:00Z
 @last-modified: 2025-02-16T14:30:00Z
 @verified: "Veritas Truthful"
-module "family" {
+module family {
 	grandparent(x,y) :- parent(x,y), parent(y,z).
 }
 ```
 
-#### Annotation Inheritence
+The module name (`family` in the example) is semantically equivalent to a module annotation `@id="family"`.
 
-Annotations are inferred from annotations of the embracing module. This is referred to as *annotation inheritence*. 
+#### Annotation Inheritance
+
+Annotations are inferred from annotations of the embracing module. This is referred to as *annotation inheritance*. 
 
 
 If a rule or module and its embracing module have annotations with the same key, the rule or inner module annotation is used. This is referred to as *annotation overriding*. 
 
-The `@id` annotation cannot be inherited from sourounding modules. 
+The `@id` annotation cannot be inherited from surrounding modules. 
 
-We refer to annotations directly defined for a rule or module as an *asserted annotations*, annotations inferred through inheritence as *inferred annotations*.
+We refer to annotations directly defined for a rule or module as an *asserted annotations*, annotations inferred through inheritance as *inferred annotations*.
 
 
 ## Compiling MeDaLog
