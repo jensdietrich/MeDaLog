@@ -3,125 +3,94 @@ package io.github.bineq.medalog;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for annotation parsing, value types, and serialisation.
+ * Tests for annotation parsing and compilation.
+ *
+ * <p>Each test loads a MeDaLog input from
+ * {@code src/test/resources/<testname>-input.mdl} and compares the compiled
+ * Souffle output against {@code src/test/resources/<testname>-oracle.dl}.
+ *
+ * <p>One additional test verifies the {@link AnnotationValue} serialisation API
+ * directly, without compiler invocation.
  */
-class AnnotationTest {
+class AnnotationTest extends CompilerTestBase {
 
     @Test
-    void stringAnnotation() {
-        String source = ".decl foo(x: symbol)\n"
-                + "@id: \"f1\"\n"
-                + "@author: \"John Doe\"\n"
-                + "foo(\"a\").\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_assertedAnnotation(\"f1\", \"author\", \"John Doe\")"),
-                "Expected string annotation fact, got:\n" + out);
+    void annotationString() {
+        assertCompileMatchesOracle("annotation-string");
     }
 
     @Test
-    void timestampAnnotation() {
-        String source = ".decl foo(x: symbol)\n"
-                + "@id: \"t1\"\n"
-                + "@created: 2025-02-16T14:30:00Z\n"
-                + "foo(\"a\").\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_assertedAnnotation(\"t1\", \"created\", \"2025-02-16T14:30:00Z\")"),
-                "Expected timestamp annotation fact, got:\n" + out);
+    void annotationTimestamp() {
+        assertCompileMatchesOracle("annotation-timestamp");
     }
 
     @Test
-    void jsonObjectAnnotation() {
-        String source = ".decl foo(x: symbol)\n"
-                + "@id: \"j1\"\n"
-                + "@verified: {\"name\":\"Alice\",\"email\":\"a@b.com\"}\n"
-                + "foo(\"a\").\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_assertedAnnotation(\"j1\", \"verified\","),
-                "Expected JSON object annotation fact, got:\n" + out);
+    void annotationJsonObject() {
+        assertCompileMatchesOracle("annotation-json-object");
     }
 
     @Test
-    void booleanAnnotation() {
-        String source = ".decl foo(x: symbol)\n"
-                + "@id: \"b1\"\n"
-                + "@active: true\n"
-                + "foo(\"a\").\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_assertedAnnotation(\"b1\", \"active\", \"true\")"),
-                "Expected boolean annotation fact, got:\n" + out);
+    void annotationBoolean() {
+        assertCompileMatchesOracle("annotation-boolean");
     }
 
     @Test
-    void numericalAnnotation() {
-        String source = ".decl foo(x: symbol)\n"
-                + "@id: \"n1\"\n"
-                + "@version: 42\n"
-                + "foo(\"a\").\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_assertedAnnotation(\"n1\", \"version\", \"42\")"),
-                "Expected numerical annotation fact, got:\n" + out);
+    void annotationNumerical() {
+        assertCompileMatchesOracle("annotation-numerical");
     }
 
     @Test
-    void hyphenatedAnnotationKey() {
-        String source = ".decl foo(x: symbol)\n"
-                + "@id: \"hk1\"\n"
-                + "@last-modified: 2025-02-16T14:30:00Z\n"
-                + "foo(\"a\").\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("\"last-modified\""),
-                "Expected hyphenated key in annotation, got:\n" + out);
+    void annotationHyphenatedKey() {
+        // @last-modified: key with hyphen must be preserved verbatim
+        assertCompileMatchesOracle("annotation-hyphenated-key");
     }
 
     @Test
-    void idAnnotationWithEqualsSign() {
-        // @id=value (using = instead of :)
-        String source = ".decl foo(x: symbol)\n"
-                + "@id=\"myfact\"\n"
-                + "foo(\"a\").\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("foo(\"myfact\","),
-                "Expected @id via = sign, got:\n" + out);
+    void annotationEqualsSign() {
+        // @id="value" uses = instead of : as separator
+        assertCompileMatchesOracle("annotation-equals-sign");
     }
 
     @Test
-    void multipleAnnotationsAllApplied() {
-        String source = ".decl foo(x: symbol)\n"
-                + "@id: \"multi1\"\n"
-                + "@author: \"Alice\"\n"
-                + "@version: 1\n"
-                + "foo(\"x\").\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("\"author\""), "Expected author annotation, got:\n" + out);
-        assertTrue(out.contains("\"version\""), "Expected version annotation, got:\n" + out);
+    void annotationMultiple() {
+        // Several annotations on the same fact all generate separate _assertedAnnotation facts
+        assertCompileMatchesOracle("annotation-multiple");
     }
 
     @Test
-    void moduleAnnotationAppliedToModule() {
-        String source = "@author: \"Bob\"\n"
-                + "module m {\n"
-                + "}\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_assertedAnnotation(\"m\", \"author\", \"Bob\")"),
-                "Expected module annotation fact, got:\n" + out);
+    void moduleAnnotation() {
+        // Annotation placed before a module generates a fact for the module id
+        assertCompileMatchesOracle("module-annotation");
     }
 
     @Test
-    void annotationValueTypes() {
-        AnnotationValue sv = new AnnotationValue.StringVal("hello");
-        assertEquals("\"hello\"", sv.toSouffleString());
-        assertEquals("hello", sv.toRawString());
+    void duplicateSameValueIsAllowed() {
+        // Duplicate annotations with the same key AND value are silently de-duplicated
+        assertCompileMatchesOracle("annotation-duplicate-same-value");
+    }
 
-        AnnotationValue nv = new AnnotationValue.NumberVal("42");
-        assertEquals("\"42\"", nv.toSouffleString());
+    // ==============================
+    // AnnotationValue serialisation unit tests (no compiler invocation)
+    // ==============================
 
-        AnnotationValue bv = new AnnotationValue.BooleanVal(true);
-        assertEquals("\"true\"", bv.toSouffleString());
+    @Test
+    void annotationValueSerialisationToSouffleString() {
+        assertEquals("\"hello\"",           new AnnotationValue.StringVal("hello").toSouffleString());
+        assertEquals("\"42\"",              new AnnotationValue.NumberVal("42").toSouffleString());
+        assertEquals("\"true\"",            new AnnotationValue.BooleanVal(true).toSouffleString());
+        assertEquals("\"false\"",           new AnnotationValue.BooleanVal(false).toSouffleString());
+        assertEquals("\"2025-02-16T14:30:00Z\"",
+                new AnnotationValue.TimestampVal("2025-02-16T14:30:00Z").toSouffleString());
+        assertEquals("\"{\\\"k\\\":1}\"",   new AnnotationValue.JsonVal("{\"k\":1}").toSouffleString());
+    }
 
-        AnnotationValue tv = new AnnotationValue.TimestampVal("2025-02-16T14:30:00Z");
-        assertEquals("\"2025-02-16T14:30:00Z\"", tv.toSouffleString());
+    @Test
+    void annotationValueRawString() {
+        assertEquals("world",                   new AnnotationValue.StringVal("world").toRawString());
+        assertEquals("-7",                      new AnnotationValue.NumberVal("-7").toRawString());
+        assertEquals("true",                    new AnnotationValue.BooleanVal(true).toRawString());
+        assertEquals("2025-01-01T00:00:00Z",    new AnnotationValue.TimestampVal("2025-01-01T00:00:00Z").toRawString());
     }
 }

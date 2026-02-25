@@ -2,82 +2,48 @@ package io.github.bineq.medalog;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 /**
  * Tests for module declaration, nesting, and annotation inheritance.
+ *
+ * <p>Each test loads a MeDaLog input from
+ * {@code src/test/resources/<testname>-input.mdl} and compares the compiled
+ * Souffle output against {@code src/test/resources/<testname>-oracle.dl}.
  */
-class ModuleTest {
+class ModuleTest extends CompilerTestBase {
 
     @Test
-    void topLevelModuleHasNoModuleMembership() {
-        String source = "module standalone {}\n";
-        String out = Compiler.compile(source);
-        // standalone is not inside any module, so no _module fact should mention it as member
-        assertFalse(out.contains("_module(\"standalone\","),
-                "Top-level module should have no _module membership fact, got:\n" + out);
+    void topLevelModule() {
+        // Fact inside a top-level module gets membership; the module itself has no parent
+        assertCompileMatchesOracle("module-top-level");
     }
 
     @Test
-    void innerModuleHasModuleMembership() {
-        String source = "module outer {\n  module inner {}\n}\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_module(\"inner\", \"outer\")"),
-                "Expected inner module membership, got:\n" + out);
+    void nestedModule() {
+        // Inner module gets a _module membership fact pointing to its parent
+        assertCompileMatchesOracle("module-nested");
     }
 
     @Test
-    void ruleInsideModuleHasModuleMembership() {
-        String source = ".decl parent(x: symbol, y: symbol)\n"
-                + "module fam {\n"
-                + "  @id: \"r1\"\n"
-                + "  parent(\"a\", \"b\").\n"
-                + "}\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_module(\"r1\", \"fam\")"),
-                "Expected rule membership in module, got:\n" + out);
+    void moduleWithRule() {
+        // Rule inside a module gets a _module membership fact
+        assertCompileMatchesOracle("module-with-rule");
     }
 
     @Test
-    void moduleAnnotationsGenerateFacts() {
-        String source = "@author: \"Team\"\n"
-                + "@version: 2\n"
-                + "module mymod {}\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_assertedAnnotation(\"mymod\", \"author\", \"Team\")"),
-                "Expected author annotation on module, got:\n" + out);
-        assertTrue(out.contains("_assertedAnnotation(\"mymod\", \"version\", \"2\")"),
-                "Expected version annotation on module, got:\n" + out);
+    void deeplyNestedModules() {
+        // Three-level nesting generates two separate _module membership facts
+        assertCompileMatchesOracle("module-deeply-nested");
     }
 
     @Test
-    void annotationInheritanceRuleGenerated() {
-        String out = Compiler.compile("module m {}\n");
-        assertTrue(out.contains("!_annotationKeyAsserted(id, key)"),
-                "Expected negation in inheritance rule, got:\n" + out);
+    void moduleWithAnnotations() {
+        // Annotations before a module declaration generate _assertedAnnotation facts
+        assertCompileMatchesOracle("module-with-annotations");
     }
 
     @Test
-    void deeplyNestedModuleChain() {
-        String source = "module a {\n  module b {\n    module c {}\n  }\n}\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_module(\"b\", \"a\")"), "Expected b in a, got:\n" + out);
-        assertTrue(out.contains("_module(\"c\", \"b\")"), "Expected c in b, got:\n" + out);
-    }
-
-    @Test
-    void ruleAndModuleInSameParentModule() {
-        String source = ".decl foo(x: symbol)\n"
-                + "module parent {\n"
-                + "  module child {}\n"
-                + "  @id: \"f1\"\n"
-                + "  foo(\"x\").\n"
-                + "}\n";
-        String out = Compiler.compile(source);
-        assertTrue(out.contains("_module(\"child\", \"parent\")"),
-                "Expected child in parent, got:\n" + out);
-        assertTrue(out.contains("_module(\"f1\", \"parent\")"),
-                "Expected fact in parent, got:\n" + out);
+    void moduleMixedContent() {
+        // Module containing both a sub-module and a fact: both get separate _module facts
+        assertCompileMatchesOracle("module-mixed-content");
     }
 }

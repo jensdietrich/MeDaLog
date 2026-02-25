@@ -1,0 +1,4 @@
+.decl age(name: symbol, years: number)
+.decl adult(name: symbol)
+@id: "r2"
+adult(n) :- age(n, a), a >= 18.

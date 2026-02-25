@@ -1,0 +1,5 @@
+.decl foo(x: symbol)
+@author: "Alice"
+@author: "Alice"
+@id: "x2"
+foo("a").

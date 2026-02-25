@@ -1,0 +1,6 @@
+module a {
+  module b {
+    module c {
+    }
+  }
+}

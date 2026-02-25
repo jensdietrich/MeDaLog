@@ -1,0 +1,4 @@
+.decl grandparent(gp: symbol, gc: symbol)
+.decl parent(p: symbol, c: symbol)
+@id: "gprule"
+grandparent(x, y) :- parent(x, z), parent(z, y).

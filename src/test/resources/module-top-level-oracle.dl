@@ -1,0 +1,17 @@
+// top-level module: fact inside gets membership; module itself has no parent membership
+.decl _module(ruleOrModuleId symbol, moduleId symbol)
+.decl _assertedAnnotation(id symbol, annotation_name symbol, annotation_value symbol)
+.decl _annotationKeyAsserted(id symbol, annotation_name symbol)
+.decl _annotation(id symbol, annotation_name symbol, annotation_value symbol)
+
+.decl foo(id: symbol, x: symbol)
+foo("f1", "x").
+
+_module("f1", "standalone").
+
+_annotationKeyAsserted(id, key) :- _assertedAnnotation(id, key, _).
+_annotation(id, key, val) :- _assertedAnnotation(id, key, val).
+_annotation(id, key, val) :-
+    _module(id, modId),
+    _annotation(modId, key, val),
+    !_annotationKeyAsserted(id, key).
