@@ -241,6 +241,34 @@ The compiler should emit a warning if any of the following is true:
 
 
 
+## Hints for Code Generation
+
+- apply existing rules
+- create code in a Maven project, implement the compiler in Java
+- the group id is `io.github.bineq`, the artifact id `medalog`
+- create the compiler in a class `io.github.bineq.medalog.Compiler`
+- `io.github.bineq.medalog.Compiler` should have static APIs methods named `compile` taking streams, reader/writers and files as input and output, `compile` can be overloaded as needed
+- integrate logging to be used for compiler warnings
+- signal compiler errors using a custom unchecked exception type `CompilerException`
+- compiler errors and warnings should include references to input line numbers
+- those APIs are used for testing
+- create a `main` method with two arguments for input and output 
+- auxiliary classes can be generated in the same package
+- create tests using JUnit5, including for corner cases like compiler warnings and errors
+- the Maven pom.xml should include plugins for the following: 
+  - test coverage
+  - mutation coverage
+  - quickcheck
+- use quickcheck to test that the datalog in inputs appears (perhaps modified) embedded in outputs
+
+
+
+
+
+
+
+
+
 
 
 
