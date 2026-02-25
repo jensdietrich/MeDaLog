@@ -246,6 +246,7 @@ The compiler should emit a warning if any of the following is true:
 - apply existing rules
 - create code in a Maven project, implement the compiler in Java
 - the group id is `io.github.bineq`, the artifact id `medalog`
+- create the grammar using antlr4, the grammar definition should go in `src/main/antlr4/io/github/bineq/medalog/MeDaLog.g4`
 - create the compiler in a class `io.github.bineq.medalog.Compiler`
 - `io.github.bineq.medalog.Compiler` should have static APIs methods named `compile` taking streams, reader/writers and files as input and output, `compile` can be overloaded as needed
 - integrate logging to be used for compiler warnings
