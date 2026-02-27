@@ -100,12 +100,12 @@ public class CodeGenerator extends MeDaLogBaseVisitor<String> {
     }
 
     private void emitBuiltinDeclarations() {
-        output.append(".decl _module(ruleOrModuleId symbol, moduleId symbol)\n");
+        output.append(".decl _module(ruleOrModuleId: symbol, moduleId: symbol)\n");
         output.append(".decl _assertedAnnotation"
-                + "(id symbol, annotation_name symbol, annotation_value symbol)\n");
-        output.append(".decl _annotationKeyAsserted(id symbol, annotation_name symbol)\n");
+                + "(id: symbol, annotation_name: symbol, annotation_value: symbol)\n");
+        output.append(".decl _annotationKeyAsserted(id: symbol, annotation_name: symbol)\n");
         output.append(".decl _annotation"
-                + "(id symbol, annotation_name symbol, annotation_value symbol)\n\n");
+                + "(id: symbol, annotation_name: symbol, annotation_value: symbol)\n\n");
     }
 
     // ==============================

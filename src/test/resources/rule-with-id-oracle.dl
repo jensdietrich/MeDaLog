@@ -1,8 +1,8 @@
 // rule with @id: head gets cat-aggregated id from rule id + body atom ids
-.decl _module(ruleOrModuleId symbol, moduleId symbol)
-.decl _assertedAnnotation(id symbol, annotation_name symbol, annotation_value symbol)
-.decl _annotationKeyAsserted(id symbol, annotation_name symbol)
-.decl _annotation(id symbol, annotation_name symbol, annotation_value symbol)
+.decl _module(ruleOrModuleId: symbol, moduleId: symbol)
+.decl _assertedAnnotation(id: symbol, annotation_name: symbol, annotation_value: symbol)
+.decl _annotationKeyAsserted(id: symbol, annotation_name: symbol)
+.decl _annotation(id: symbol, annotation_name: symbol, annotation_value: symbol)
 
 .decl grandparent(id: symbol, gp: symbol, gc: symbol)
 .decl parent(id: symbol, p: symbol, c: symbol)

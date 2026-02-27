@@ -1,8 +1,8 @@
 // comparison constraints are passed through verbatim; only predicate atoms get id vars
-.decl _module(ruleOrModuleId symbol, moduleId symbol)
-.decl _assertedAnnotation(id symbol, annotation_name symbol, annotation_value symbol)
-.decl _annotationKeyAsserted(id symbol, annotation_name symbol)
-.decl _annotation(id symbol, annotation_name symbol, annotation_value symbol)
+.decl _module(ruleOrModuleId: symbol, moduleId: symbol)
+.decl _assertedAnnotation(id: symbol, annotation_name: symbol, annotation_value: symbol)
+.decl _annotationKeyAsserted(id: symbol, annotation_name: symbol)
+.decl _annotation(id: symbol, annotation_name: symbol, annotation_value: symbol)
 
 .decl age(id: symbol, name: symbol, years: number)
 .decl adult(id: symbol, name: symbol)
