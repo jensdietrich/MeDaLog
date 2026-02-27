@@ -6,7 +6,7 @@ This is an informal specification that aims to be precise enough to be used as a
 
 ## MeDaLog Grammar
 
-*MeDaLog* is a conservative extension of the [souffle dialect](https://souffle-lang.github.io/) of datalog, adding two new features: *modules*  and *annotations*.
+*MeDaLog* is a set of annotation processors for the *souffle* dialect of datalog.
 
 
 ## Definitions
@@ -18,93 +18,17 @@ A *rule* is a souffle datalog rule. Here the notion of rule also includes facts 
 Two strings s1 and s2 are call *equivalent* if the strings resulting from removing leading and trailing whitespaces and then lowercasing the results are the same.
 
 
-## Modules
+## The Identity Annotation Processor
 
-Rules (and facts) can be placed in *modules*. Modules are declared using the keyword `module` followed by a unique *id* of type identifier.
+The id annotation processor adds an additional `id` first slot predicates.
 
-Example: 
-
-```
-module family
-{
-	grandparent(x,y) :- parent(x,y), parent(y,z).
-	grandchild(x,y) :- grandparent(y,x).
-}
-```
-
-The content of a module is one of the following:
-
-- a valid souffle datalog  program (predicate declarations and rules)
-- other modules (i.e. modules can be nested), those are referred to as *inner modules*
-- annotations on inner modules and rules as specified below
-
-
-## Annotations
-
-There are two types of annotations: *rule annotations* and *module annotations*.
-Annotations have the following structure: 
-
-`@<key>:<value>` , where:
-
-- `value` is of any of the following types: string, boolean, numerical, a json object or array, or a timestamp in ISO8601 format
-- `key` is an identifier as defined above
-
-Several annotations can be precede a module or rule, all of them are applied. Such list of annotations can be be inter-lined by comments and blank lines.
-
-
-#### Rule Annotations
-
-Rule annotations precede rules.
-Example:
-
-```
-module family {
-	@author: "John Doe"
-	@created: 2025-02-16T14:30:00Z
-	@last-modified: 2025-02-16T14:30:00Z
-	@verified: {"name":"Veritas Truthful","email":"veritas@true.com"}
-	@id="rule42"
-	grandparent(x,y) :- parent(x,y), parent(y,z).
-}
-```
-
-#### Module Annotations
-
-Module annotations precede modules, and have the following structure: 
-
-Example:
-
-```
-@author: "John Doe"
-@created: 2025-02-16T14:30:00Z
-@last-modified: 2025-02-16T14:30:00Z
-@verified: "Veritas Truthful"
-module family {
-	grandparent(x,y) :- parent(x,y), parent(y,z).
-}
-```
-
-The module name (`family` in the example) is semantically equivalent to a module annotation `@id="family"`.
-
-#### Annotation Inheritance
-
-Annotations are inferred from annotations of the embracing module. This is referred to as *annotation inheritance*. 
-
-
-If a rule or module and its embracing module have annotations with the same key, the rule or inner module annotation is used. This is referred to as *annotation overriding*. 
-
-The `@id` annotation cannot be inherited from surrounding modules. 
-
-We refer to annotations directly defined for a rule or module as an *asserted annotations*, annotations inferred through inheritance as *inferred annotations*.
-
-
-## Compiling MeDaLog
-
-A MeDaLog program compiles into a souffle datalog program. The following modifications are being made.
+Input:  a souffle program
+Output:  a transformed souffle program
 
 ### Predicate Declarations
 
-Each predicate declared in a medalog program is extended by an additional first slot holding a unique fact or rule id.
+
+Each predicate declared in the input program is extended by an additional first slot holding a unique fact or rule id.
 
 Example:
 
@@ -112,7 +36,7 @@ Example:
 .decl grandparent(gp symbol,gc symbol)
 ```
 
-is compiled to: 
+is extended to: 
 
 ```
 .decl grandparent(id symbol,gp symbol,gc symbol)
@@ -122,14 +46,14 @@ is compiled to:
 If the original predicate already defines the first slot as `id symbol`, then this is used and no additional slot is created.  A compiler warning is created. 
 
 
-### Facts 
+### Facts
 
-If a fact has an @id annotation, then the respective value is used. 
+If a fact has an `@id` annotation, then the respective value is used. 
 
 Example:
 
 ```
-@id: "tim-fact-1"
+@[id = "tim-fact-1"]
 parent("Tim","Tom").
 ```
 
@@ -140,7 +64,7 @@ parent("tim-fact-1","Tim","Tom").
 ```
 
 
-If the `@id` annotation is missing and cannot be inherited from surrounding modules, then the compiler generates and uses a unique fact id.
+If the `@id` annotation is missing, then the annotation processor generates and uses a unique fact id. By default, generated fact ids start with `F` followed by a number.
 
 Example:
 
@@ -156,27 +80,40 @@ parent("F42","Tim","Tom").
 
 Where `"F42"` is a compiler-generated unique fact id. 
 
-
 ### Rules
 
-If a fact has an @id annotation, then the respective value is used. 
+Rule ids are declared using `id` annotation. If the `@id` annotation is missing, then the annotation processor generates and uses a unique fact id. By default, generated fact ids start with `R` followed by a number.
 
 Example:
 
 ```
-@id: "grandparentrule"
-grandparent(x,y) :- parent(x,y), parent(y,z).
+@[id = "grandparentrule"]
+grandparent(x,z) :- parent(x,y), parent(y,z).
 ```
 
 is compiled to: 
 
 ```
-grandparent(<aggreation>(grandpaternrule,id1,id2),x,y) :- parent(id1,x,y), parent(id2,y,z).
+grandparent(<aggregation>("grandparentrule",id1,id2),x,z) :- parent(id1,x,y), parent(id2,y,z).
 ```
 
-Where `<aggregation>` is an aggregation function that takes the rule id (either specified or inferred by the compiler like for facts if the @id annotation is missing). 
+Where `<aggregation>` is an aggregation function that takes the rule id and the ids of facts in the premisses as parameters. If negation us used in the rule body, then thus premise is represented by a `!` followed by the predicate name.
 
-The compiler must have a strategy to specify (plug in) such an aggregation function, the function used by default is souffle's `cat` function, with arguments separated by `","` and embraced by `[`,`]`. 
+Example:
+
+```
+@[id = "grandparentrule"]
+grandparent(x,z) :- parent(x,y), parent(y,z), !adopted(z).
+```
+
+is compiled to: 
+
+```
+grandparent(<aggregation>("grandparentrule",id1,id2,"!adopted"),x,z) :- parent(id1,x,y), parent(id2,y,z),!adopted(z).
+```
+
+
+The annotation processor must have a strategy to specify (plug in) such an aggregation function, the function used by default is souffle's `cat` function, with arguments separated by `","` and embraced by `[`,`]`. 
 
 Look at the following repository folder how to do this: 
 https://github.com/binaryeq/daleq/tree/main/src/main/resources/rules .
@@ -184,61 +121,87 @@ https://github.com/binaryeq/daleq/tree/main/src/main/resources/rules .
 Using the default aggregation function will create ids in derived facts that comply to this grammar: 
 https://github.com/binaryeq/daleq/blob/main/src/main/antlr4/io/github/bineq/daleq/souffle/provenance/Proof.g4 . 
 
+The purpose of using such an aggregation is to provide custom provenance to record aspects of the annotation. The provenance method is eager, i.e. always computed during the evaluation of rules. The ids of inferred facts encode provenance information.
 
-### Module
 
-A `_module` predicate is introduced, declared as follows:
+### Hints for Code Generation for the Identity Annotation Processor 
 
-```
-.decl _module(ruleOrModuleId symbol,moduleId symbol)
-```
+1. Generate the identity annotation processor in a class `io.github.bineq.medalog.id.IdentityAnnotationProcessor`
+2. `IdentityAnnotationProcessor` should have static APIs methods named `process` taking streams, reader/writers and files as input and output, `process ` can be overloaded as needed
+3. Also follow general code generation hints
 
-The compiler creates facts for each rule and module that is within another module. Those facts define module membership.
+## The Metadata Annotation Processor
 
-Example (from other examples above):
+Input: a souffle program and a list of annotation keys, such as `{"author","description","created","last-modified"}` , those are refereed as *meta-data annotations*
 
-```
-_module("rule42","family").
-```
+Output:  a transformed souffle  program
+
 
 ### Annotations
 
+The standard outer annotation syntax of souffle are used for metadata annotations.
+Both [components](https://souffle-lang.github.io/components) and rules can be annotated. 
 
-An `_annotation` predicate is introduced, declared as follows:
+Example:
 
 ```
-.decl _annotation(id symbol,annotation_name symbol,annotation_value symbol)
+@[author = "jens"]
+@[description = "family rules"]
+@[created: "2026-02-16T14:30:00Z"]
+@[last-modified: "2026-03-16T14:30:00Z"]
+.comp MyComponent {
+	@[id = "grandparentrule"]
+	@[last-modified: "2026-03-16T14:30:00Z"]
+	@[description = "rule to describe grandparent relationships"]
+	grandparent(x,z) :- parent(x,y), parent(y,z).
+}
 ```
 
-Facts instantiating `_annotation` are created for each asserted annotation that is not `@id`.
+
+### Annotation Inheritance
+
+Metadata annotations are inferred from metadata annotations of the embracing component. This is referred to as *annotation inheritance*.  For instance, in the example above, the metadata annotation `author` is inferred to also be an annotation of the rule with the id `grandparentrule`. 
+
+If a rule or component and its embracing component have annotations with the same key, the rule or inner component annotation is used. This is referred to as *annotation overriding*. 
+
+`id` is not used as a metadata annotation. An attempt to do so leads to an error during annotation processing. 
+
+We refer to annotations directly defined for a rule or component as an *asserted annotations*, annotations inferred through inheritance as *inferred annotations*.
+
+An `_annotation` predicate is introduced for meta data annotations, declared as follows:
+
+
+```
+.decl annotation(id symbol,annotation_name symbol,annotation_value symbol)
+```
+
+Facts instantiating `annotation` are created for each metadata annotation. The `annotation` predicate, facts and rules instantiating this are all to be located in a component `metadata`.
 
 Example (from other examples above):
 
 ```
-_annotation("rule42","author","John Doe").
-_annotation("rule42","created","2025-02-16T14:30:00Z").
+annotation("rule42","author","jens").
+annotation("rule42","created","2025-02-16T14:30:00Z").
 ```
 
-Note that annotation values need to be converted to strings. 
 
 For inferred annotations, the compiler must generate datalog rules infer those facts. 
-Those rules use the `_annotation` predicate in body and head, and the `_module` predicate in the body. 
+For this purpose, predicates, facts and rules must be created to represent the following: 
+
+1. the component hierarchy
+2. annotations on components
+3. membership of rules and facts in components
+4. inferred annotations
+
+All those predicate and rules are defined in the component `metadata`.
 
 
-### Compiler Errors
 
-The compiler should create an error if any of the following is true: 
+### Hints for Code Generation for the Metadata Annotation Processor 
 
-- two or more `@id` annotations use the same value
-- two asserted annotations with the same key but different values are defined for the same rule or module
-
-### Compiler Warnings
-
-The compiler should emit a warning if any of the following is true: 
-
-- an annotation key that is equivalent to `@id` is encountered
-- different annotations are used with keys that are equivalent, but not equal 
-
+1. Generate the identity annotation processor in a class `io.github.bineq.medalog.meta.MetadataAnnotationProcessor`
+2. `MetadataAnnotationProcessor ` should have static APIs methods named `process` taking streams, reader/writers and files as input and output, plus an additional *varchar* String argument containing metadata annotations. `process ` can be overloaded as needed
+3. Also follow general code generation hints
 
 
 ## Hints for Code Generation
@@ -246,11 +209,9 @@ The compiler should emit a warning if any of the following is true:
 - apply existing rules
 - create code in a Maven project, implement the compiler in Java
 - the group id is `io.github.bineq`, the artifact id `medalog`
-- create the grammar using antlr4, the grammar definition should go in `src/main/antlr4/io/github/bineq/medalog/MeDaLog.g4`
-- create the compiler in a class `io.github.bineq.medalog.Compiler`
-- `io.github.bineq.medalog.Compiler` should have static APIs methods named `compile` taking streams, reader/writers and files as input and output, `compile` can be overloaded as needed
+- create the souffle grammar using antlr4, the grammar definition should go in `src/main/antlr4/io/github/bineq/medalog/MeDaLog.g4`
 - integrate logging to be used for compiler warnings
-- signal compiler errors using a custom unchecked exception type `CompilerException`
+- signal compiler errors using a custom unchecked exception type `AnnotationProcessorException`
 - compiler errors and warnings should include references to input line numbers
 - those APIs are used for testing
 - create a `main` method with two arguments for input and output 
@@ -262,6 +223,20 @@ The compiler should emit a warning if any of the following is true:
   - quickcheck
 - use quickcheck to test that the datalog in inputs appears (perhaps modified) embedded in outputs
 
+
+### Errors
+
+Annotation processing should create an error if any of the following is true: 
+
+- two or more `@id` annotations use the same value
+- two asserted annotations with the same key but different values are defined for the same rule or component
+
+### Warnings
+
+Annotation processing should emit a warning if any of the following is true: 
+
+- an annotation key that is equivalent to `@id` is encountered
+- different annotations are used with keys that are equivalent, but not equal 
 
 
 
