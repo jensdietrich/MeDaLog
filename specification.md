@@ -6,12 +6,11 @@ This is an informal specification that aims to be precise enough to be used as a
 
 ## MeDaLog Grammar
 
-*MeDaLog* is a set of annotation processors for the *souffle* dialect of datalog.
+*MeDaLog* is a set of annotation processors for the [*souffle* dialect of datalog](https://souffle-lang.github.io/).
 
 
 ## Definitions
 
-An *identifier* is a string consisting of alphanumeric characters and underscores, starting with a character or underscore. An identifier must not be a souffle keyword. 
 
 A *rule* is a souffle datalog rule. Here the notion of rule also includes facts which can be considered as rule without a body (i.e. without premisses). 
 
@@ -20,7 +19,7 @@ Two strings s1 and s2 are call *equivalent* if the strings resulting from removi
 
 ## The Identity Annotation Processor
 
-The id annotation processor adds an additional `id` first slot predicates.
+The id annotation processor adds an additional `id` first slot of type symbol to predicates.
 
 Input:  a souffle program
 Output:  a transformed souffle program
@@ -43,7 +42,10 @@ is extended to:
 
 ```
 
-If the original predicate already defines the first slot as `id symbol`, then this is used and no additional slot is created.  A compiler warning is created. 
+If the original predicate already defines the first slot as `id symbol`, then this is used and no additional slot is created.  A warning is created.  
+If an existing slot named `id` is already defined for a predicate but is not the first slot, then an error occurs. 
+If an existing slot named `id` is already defined for a predicate is, is the first slot but of a type other than `symbol`, then an error occurs. 
+
 
 
 ### Facts
@@ -57,14 +59,15 @@ Example:
 parent("Tim","Tom").
 ```
 
-is compiled to: 
+is extended to: 
 
 ```
 parent("tim-fact-1","Tim","Tom").
 ```
 
 
-If the `@id` annotation is missing, then the annotation processor generates and uses a unique fact id. By default, generated fact ids start with `F` followed by a number.
+If the `@id` annotation is missing, then the annotation processor generates and uses a unique fact id. 
+By default, generated fact ids start with `F` followed by a number.
 
 Example:
 
@@ -78,11 +81,13 @@ is compiled to:
 parent("F42","Tim","Tom").
 ```
 
-Where `"F42"` is a compiler-generated unique fact id. 
+Where `"F42"` is a generated unique fact id. 
 
 ### Rules
 
-Rule ids are declared using `id` annotation. If the `@id` annotation is missing, then the annotation processor generates and uses a unique fact id. By default, generated fact ids start with `R` followed by a number.
+Rule ids are declared using `id` annotation. 
+If the `@id` annotation is missing, then the annotation processor generates and uses a unique rule id. 
+By default, generated rule ids start with `R` followed by a number.
 
 Example:
 
@@ -97,7 +102,8 @@ is compiled to:
 grandparent(<aggregation>("grandparentrule",id1,id2),x,z) :- parent(id1,x,y), parent(id2,y,z).
 ```
 
-Where `<aggregation>` is an aggregation function that takes the rule id and the ids of facts in the premisses as parameters. If negation us used in the rule body, then thus premise is represented by a `!` followed by the predicate name.
+Where `<aggregation>` is an aggregation function that takes the rule id and the ids of facts in the premisses as parameters. 
+If negation is used in the rule body, then such a premise is represented by a `!` followed by the predicate name.
 
 Example:
 
@@ -106,7 +112,7 @@ Example:
 grandparent(x,z) :- parent(x,y), parent(y,z), !adopted(z).
 ```
 
-is compiled to: 
+is transformed to: 
 
 ```
 grandparent(<aggregation>("grandparentrule",id1,id2,"!adopted"),x,z) :- parent(id1,x,y), parent(id2,y,z),!adopted(z).
@@ -121,25 +127,35 @@ https://github.com/binaryeq/daleq/tree/main/src/main/resources/rules .
 Using the default aggregation function will create ids in derived facts that comply to this grammar: 
 https://github.com/binaryeq/daleq/blob/main/src/main/antlr4/io/github/bineq/daleq/souffle/provenance/Proof.g4 . 
 
-The purpose of using such an aggregation is to provide custom provenance to record aspects of the annotation. The provenance method is eager, i.e. always computed during the evaluation of rules. The ids of inferred facts encode provenance information.
+The purpose of using such an aggregation is to provide custom provenance to record aspects of the annotation. 
+The provenance mechanism is eager, i.e. always computed during the evaluation of rules. 
+The ids of inferred facts encode provenance information.
+
 
 
 ### Hints for Code Generation for the Identity Annotation Processor 
 
-1. Generate the identity annotation processor in a class `io.github.bineq.medalog.id.IdentityAnnotationProcessor`
+1. generate the identity annotation processor in a class `io.github.bineq.medalog.id.IdentityAnnotationProcessor`
 2. `IdentityAnnotationProcessor` should have static APIs methods named `process` taking streams, reader/writers and files as input and output, `process ` can be overloaded as needed
-3. Also follow general code generation hints
+3. follow general code generation hints
+
+
+### Id Generation
+
+1. Generate a class to generate fact and rule ids named `io.github.bineq.medalog.id.IdGenerator`
+2. `IdGenerator` has an API consisting of two public static methods: `String nextFactId()` and `String nextRuleId`.
+3. The ids returned by those methods must comply to the constraints mentioned above. In particular, they must be unique and short. 
 
 ## The Metadata Annotation Processor
 
-Input: a souffle program and a list of annotation keys, such as `{"author","description","created","last-modified"}` , those are refereed as *meta-data annotations*
+Input: a souffle program and a list of annotation keys, such as `{"author","description","created","last-modified"}` , annotations using those keys are referred as *meta-data annotations*
 
 Output:  a transformed souffle  program
 
 
 ### Annotations
 
-The standard outer annotation syntax of souffle are used for metadata annotations.
+The standard outer annotation syntax of souffle is used for metadata annotations.
 Both [components](https://souffle-lang.github.io/components) and rules can be annotated. 
 
 Example:
@@ -164,7 +180,7 @@ Metadata annotations are inferred from metadata annotations of the embracing com
 
 If a rule or component and its embracing component have annotations with the same key, the rule or inner component annotation is used. This is referred to as *annotation overriding*. 
 
-`id` is not used as a metadata annotation. An attempt to do so leads to an error during annotation processing. 
+`id` must not used as a metadata annotation. An attempt to do so leads to an error during annotation processing. 
 
 We refer to annotations directly defined for a rule or component as an *asserted annotations*, annotations inferred through inheritance as *inferred annotations*.
 
@@ -175,53 +191,83 @@ An `_annotation` predicate is introduced for meta data annotations, declared as 
 .decl annotation(id symbol,annotation_name symbol,annotation_value symbol)
 ```
 
-Facts instantiating `annotation` are created for each metadata annotation. The `annotation` predicate, facts and rules instantiating this are all to be located in a component `metadata`.
+Facts instantiating `annotation` are created for each metadata annotation. The `annotation` predicate, facts and rules instantiating this are all to be defined within a component `metadata`.
 
 Example (from other examples above):
 
 ```
-annotation("rule42","author","jens").
-annotation("rule42","created","2025-02-16T14:30:00Z").
+.comp metadata {
+	.decl annotation(id symbol,annotation_name symbol,annotation_value symbol)
+	annotation("rule42","author","jens").
+	annotation("rule42","created","2025-02-16T14:30:00Z").
+}
 ```
 
 
-For inferred annotations, the compiler must generate datalog rules infer those facts. 
-For this purpose, predicates, facts and rules must be created to represent the following: 
+For inferred annotations, the compiler must generate datalog rules to infer annotation facts. 
+For this purpose, predicates, facts and rules must be created within the component `metadata` to represent the following: 
 
 1. the component hierarchy
 2. annotations on components
 3. membership of rules and facts in components
 4. inferred annotations
 
-All those predicate and rules are defined in the component `metadata`.
-
-
 
 ### Hints for Code Generation for the Metadata Annotation Processor 
 
-1. Generate the identity annotation processor in a class `io.github.bineq.medalog.meta.MetadataAnnotationProcessor`
+1. generate the identity annotation processor in a class `io.github.bineq.medalog.meta.MetadataAnnotationProcessor`
 2. `MetadataAnnotationProcessor ` should have static APIs methods named `process` taking streams, reader/writers and files as input and output, plus an additional *varchar* String argument containing metadata annotations. `process ` can be overloaded as needed
-3. Also follow general code generation hints
+3. follow general code generation hints
 
 
 ## Hints for Code Generation
 
-- apply existing rules
+### General Rules
+
+- apply existing rules in `~/.claude/rules`
+
+
+
+### Parsing and Transformations
+
+
 - create code in a Maven project, implement the compiler in Java
 - the group id is `io.github.bineq`, the artifact id `medalog`
-- create the souffle grammar using antlr4, the grammar definition should go in `src/main/antlr4/io/github/bineq/medalog/MeDaLog.g4`
+- use an AST representation of souffle to transform the program
+- use an existing grammar if possible
+- if this is not possible, create the souffle grammar using `antlr4`, the grammar definition should go in `src/main/antlr4/io/github/bineq/medalog/souffle.g4`, and the `antlr` Maven plugin should be used to create the parser at build time
+
+
+### Logging, Warnings and Errors
+
 - integrate logging to be used for compiler warnings
 - signal compiler errors using a custom unchecked exception type `AnnotationProcessorException`
 - compiler errors and warnings should include references to input line numbers
-- those APIs are used for testing
-- create a `main` method with two arguments for input and output 
+
+
+### CLI 
+
+- create a class `Main` with a method `main` method with the following arguments:
+	- `processor` - one of `id`,`metadata`,`all` - defines which annotation processor is used
+	- `input` - required, a file
+	- `output` - required, a file
+	- `metadata` - optional, the list of comma separated metadata annotations
+	-  
 - auxiliary classes can be generated in the same package
+
+### Testing
+
+
 - create tests using JUnit5, including for corner cases like compiler warnings and errors
 - the Maven pom.xml should include plugins for the following: 
   - test coverage
   - mutation coverage
   - quickcheck
 - use quickcheck to test that the datalog in inputs appears (perhaps modified) embedded in outputs
+- use the `souffle` binary to run checks whether the input and the outputs of annotation processing are valid `souffle` programs
+- for input, those checks are assumptions
+- for output, those checks are assertions
+- tests should have assumptions checking that `souffle` is on the path, i.e. if those assumptions fail, the tests will be skipped - this can be implemented in a static fixture
 
 
 ### Errors
@@ -236,7 +282,7 @@ Annotation processing should create an error if any of the following is true:
 Annotation processing should emit a warning if any of the following is true: 
 
 - an annotation key that is equivalent to `@id` is encountered
-- different annotations are used with keys that are equivalent, but not equal 
+- different annotations are used for the same rule of component (asserted or inherited) with keys that are equivalent, but not equal 
 
 
 
