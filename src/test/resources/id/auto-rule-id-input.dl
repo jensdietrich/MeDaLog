@@ -1,0 +1,4 @@
+.decl a(x: symbol)
+.decl b(x: symbol)
+a(x) :- b(x).
+a(x) :- b(x).

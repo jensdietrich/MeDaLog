@@ -1,4 +1,0 @@
-.decl foo(x: symbol)
-@id: "t3"
-@verified: {"name":"Alice","score":10}
-foo("a").

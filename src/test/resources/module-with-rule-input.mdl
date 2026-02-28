@@ -1,6 +1,0 @@
-.decl parent(p: symbol, c: symbol)
-.decl gp(gp: symbol, gc: symbol)
-module fam {
-  @id: "r1"
-  gp(x, y) :- parent(x, z), parent(z, y).
-}

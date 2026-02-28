@@ -1,0 +1,36 @@
+.decl parent(p: symbol, c: symbol)
+
+.comp Family {
+    @[id = "gp-rule"]
+    grandparent(x, z) :- parent(x, y), parent(y, z).
+}
+
+.comp _metadata {
+    .decl annotation(id: symbol, annotation_name: symbol, annotation_value: symbol)
+    .decl _assertedAnnotation(id: symbol, annotation_name: symbol, annotation_value: symbol)
+    .decl _annotationKeyAsserted(id: symbol, annotation_name: symbol)
+    .decl _compHierarchy(childId: symbol, parentId: symbol)
+    .decl _member(ruleId: symbol, compId: symbol)
+
+    _member("gp-rule", "Family").
+    _assertedAnnotation("Family", "author", "jens").
+    _assertedAnnotation("Family", "description", "family rules").
+    _assertedAnnotation("gp-rule", "description", "grandparent derivation").
+
+    _annotationKeyAsserted(id, name) :- _assertedAnnotation(id, name, _).
+
+    annotation(id, name, value) :- _assertedAnnotation(id, name, value).
+
+    // Annotation inheritance from component to member
+    annotation(memberId, name, value) :-
+        _member(memberId, compId),
+        _assertedAnnotation(compId, name, value),
+        !_annotationKeyAsserted(memberId, name).
+
+    // Annotation inheritance along component hierarchy
+    annotation(childId, name, value) :-
+        _compHierarchy(childId, parentId),
+        _assertedAnnotation(parentId, name, value),
+        !_annotationKeyAsserted(childId, name).
+}
+.init metadata = _metadata

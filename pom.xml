@@ -8,8 +8,8 @@
     <artifactId>medalog</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>MeDaLog Compiler</name>
-    <description>Compiler for MeDaLog, a Souffle Datalog extension with modules and annotations</description>
+    <name>MeDaLog Annotation Processors</name>
+    <description>Annotation processors for Souffle Datalog programs: identity provenance and metadata annotation support</description>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -162,7 +162,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>io.github.bineq.medalog.Compiler</mainClass>
+                            <mainClass>io.github.bineq.medalog.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -183,7 +183,7 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>io.github.bineq.medalog.Compiler</mainClass>
+                                    <mainClass>io.github.bineq.medalog.Main</mainClass>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>

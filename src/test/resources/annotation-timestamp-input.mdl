@@ -1,4 +1,0 @@
-.decl foo(x: symbol)
-@id: "t2"
-@created: 2025-02-16T14:30:00Z
-foo("a").

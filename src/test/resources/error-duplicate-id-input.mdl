@@ -1,5 +1,0 @@
-.decl parent(x: symbol, y: symbol)
-@id: "dup"
-parent("a", "b").
-@id: "dup"
-parent("c", "d").

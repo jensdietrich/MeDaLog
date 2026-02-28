@@ -1,0 +1,3 @@
+.decl foo(x: symbol)
+@[id = "r1"]
+foo(x) :- bar(x).

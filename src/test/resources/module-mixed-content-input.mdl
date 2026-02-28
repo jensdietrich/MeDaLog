@@ -1,7 +1,0 @@
-.decl foo(x: symbol)
-module outer {
-  module child {
-  }
-  @id: "f1"
-  foo("x").
-}

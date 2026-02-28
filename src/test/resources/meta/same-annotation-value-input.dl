@@ -1,0 +1,4 @@
+.decl p(x: symbol)
+@[author = "alice"]
+@[author = "alice"]
+p("x").

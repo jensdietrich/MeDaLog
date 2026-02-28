@@ -1,0 +1,3 @@
+.decl parent(p: symbol, c: symbol)
+@[id = "fact1"]
+parent("Tim", "Tom").

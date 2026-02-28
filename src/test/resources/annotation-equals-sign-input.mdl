@@ -1,3 +1,0 @@
-.decl foo(x: symbol)
-@id="myfact"
-foo("a").

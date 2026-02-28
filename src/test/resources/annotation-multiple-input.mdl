@@ -1,5 +1,0 @@
-.decl foo(x: symbol)
-@id: "t7"
-@author: "Alice"
-@version: 1
-foo("a").

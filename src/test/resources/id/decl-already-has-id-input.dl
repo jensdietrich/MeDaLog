@@ -1,0 +1,1 @@
+.decl parent(id: symbol, p: symbol, c: symbol)

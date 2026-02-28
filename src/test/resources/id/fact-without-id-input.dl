@@ -1,0 +1,2 @@
+.decl parent(p: symbol, c: symbol)
+parent("Tim", "Tom").

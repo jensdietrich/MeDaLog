@@ -1,0 +1,3 @@
+@[author = "alice"]
+@[author = "bob"]
+.comp MyComp { }

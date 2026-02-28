@@ -1,0 +1,2 @@
+.decl p(x: symbol)
+p("x").

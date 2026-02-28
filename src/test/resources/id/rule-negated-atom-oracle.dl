@@ -1,0 +1,4 @@
+.decl parent(id: symbol, p: symbol, c: symbol)
+.decl adopted(id: symbol, c: symbol)
+.decl grandparent(id: symbol, gp: symbol, gc: symbol)
+grandparent(cat("gp-rule", cat("[", cat(_id1, cat(",", cat(_id2, cat(",", cat("!adopted", "]"))))))), x, z) :- parent(_id1, x, y), parent(_id2, y, z), !adopted(_, z).

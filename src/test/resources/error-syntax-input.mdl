@@ -1,2 +1,0 @@
-.decl foo(x: symbol)
-foo("a")

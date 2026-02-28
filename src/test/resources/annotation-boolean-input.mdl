@@ -1,4 +1,0 @@
-.decl foo(x: symbol)
-@id: "t4"
-@active: true
-foo("a").

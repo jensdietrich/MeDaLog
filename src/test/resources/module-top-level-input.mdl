@@ -1,5 +1,0 @@
-.decl foo(x: symbol)
-module standalone {
-  @id: "f1"
-  foo("x").
-}

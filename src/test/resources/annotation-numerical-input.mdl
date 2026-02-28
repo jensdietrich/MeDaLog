@@ -1,4 +1,0 @@
-.decl foo(x: symbol)
-@id: "t5"
-@version: 42
-foo("a").

@@ -1,3 +1,0 @@
-.decl parent(x: symbol, y: symbol)
-@id: "fact-1"
-parent("Tim", "Tom").

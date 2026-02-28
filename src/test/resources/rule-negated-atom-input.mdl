@@ -1,5 +1,0 @@
-.decl active(x: symbol)
-.decl removed(x: symbol)
-.decl result(x: symbol)
-@id: "r1"
-result(x) :- active(x), !removed(x).
