@@ -1,5 +1,7 @@
 .decl parent(p: symbol, c: symbol)
 .decl adopted(c: symbol)
 .decl grandparent(gp: symbol, gc: symbol)
+parent("Tim", "Bob").
+parent("Bob", "Ann").
 @[id = "gp-rule"]
 grandparent(x, z) :- parent(x, y), parent(y, z), !adopted(z).

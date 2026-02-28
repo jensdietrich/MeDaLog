@@ -22,8 +22,7 @@
 
     _member("gp-rule", "Family").
     _assertedAnnotation("Family", "author", "jens").
-    _assertedAnnotation("Family", "description", "family rules").
-    _assertedAnnotation("gp-rule", "description", "grandparent derivation").
+    _assertedAnnotation("gp-rule", "author", "alice").
 
     _annotationKeyAsserted(id, name) :- _assertedAnnotation(id, name, _).
 

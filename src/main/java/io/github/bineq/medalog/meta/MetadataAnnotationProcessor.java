@@ -273,8 +273,9 @@ public class MetadataAnnotationProcessor {
         sb.append("    annotation(childId, name, value) :-\n");
         sb.append("        _compHierarchy(childId, parentId),\n");
         sb.append("        _assertedAnnotation(parentId, name, value),\n");
-        sb.append("        !_annotationKeyAsserted(childId, name).\n");
+        sb.append("        !_annotationKeyAsserted(childId, name).\n\n");
 
+        sb.append("    .output annotation\n");
         sb.append("}\n");
         sb.append(".init metadata = _metadata\n");
 

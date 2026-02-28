@@ -5,7 +5,6 @@
     parent("Tim", "Bob").
     parent("Bob", "Ann").
 
-    @[id = "gp-rule"]
     grandparent(x, z) :- parent(x, y), parent(y, z).
 
     .output grandparent
@@ -20,10 +19,8 @@
     .decl _compHierarchy(childId: symbol, parentId: symbol)
     .decl _member(ruleId: symbol, compId: symbol)
 
-    _member("gp-rule", "Family").
     _assertedAnnotation("Family", "author", "jens").
     _assertedAnnotation("Family", "description", "family rules").
-    _assertedAnnotation("gp-rule", "description", "grandparent derivation").
 
     _annotationKeyAsserted(id, name) :- _assertedAnnotation(id, name, _).
 

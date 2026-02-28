@@ -1,17 +1,6 @@
-.comp Family {
-    .decl parent(p: symbol, c: symbol)
-    .decl grandparent(gp: symbol, gc: symbol)
-
-    parent("Tim", "Bob").
-    parent("Bob", "Ann").
-
-    @[id = "gp-rule"]
-    grandparent(x, z) :- parent(x, y), parent(y, z).
-
-    .output grandparent
+.comp Outer {
+    .comp Inner { }
 }
-
-.init f = Family
 
 .comp _metadata {
     .decl annotation(id: symbol, annotation_name: symbol, annotation_value: symbol)
@@ -20,10 +9,10 @@
     .decl _compHierarchy(childId: symbol, parentId: symbol)
     .decl _member(ruleId: symbol, compId: symbol)
 
-    _member("gp-rule", "Family").
-    _assertedAnnotation("Family", "author", "jens").
-    _assertedAnnotation("Family", "description", "family rules").
-    _assertedAnnotation("gp-rule", "description", "grandparent derivation").
+    _compHierarchy("Inner", "Outer").
+    _assertedAnnotation("Outer", "author", "jens").
+    _assertedAnnotation("Outer", "project", "medalog").
+    _assertedAnnotation("Inner", "author", "alice").
 
     _annotationKeyAsserted(id, name) :- _assertedAnnotation(id, name, _).
 

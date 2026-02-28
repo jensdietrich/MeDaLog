@@ -1,4 +1,5 @@
 .decl a(id: symbol, x: symbol)
 .decl b(id: symbol, x: symbol)
+b("F1", "hello").
 a(cat("R1", cat("[", cat(_id1, "]"))), x) :- b(_id1, x).
 a(cat("R2", cat("[", cat(_id1, "]"))), x) :- b(_id1, x).

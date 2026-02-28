@@ -1,3 +1,5 @@
 .decl parent(id: symbol, p: symbol, c: symbol)
 .decl grandparent(id: symbol, gp: symbol, gc: symbol)
+parent("F1", "Tim", "Bob").
+parent("F2", "Bob", "Ann").
 grandparent(cat("gp-rule", cat("[", cat(_id1, cat(",", cat(_id2, "]"))))), x, z) :- parent(_id1, x, y), parent(_id2, y, z).

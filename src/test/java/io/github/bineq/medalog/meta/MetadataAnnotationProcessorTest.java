@@ -59,11 +59,124 @@ class MetadataAnnotationProcessorTest extends ProcessorTestBase {
     }
 
     @Test
-    void outputIsValidSouffle_compWithoutIdAnnotations() throws Exception {
-        SouffleFixture.assumeSouffleAvailable();
-        // Use input without @[id] annotations so the metadata-processor-only output is valid Souffle
-        String input = loadResource("meta/comp-no-id-input.dl");
+    void compWithAnnotationsButNoRuleIdGeneratesMetadataWithoutMember() throws IOException {
+        String input  = loadResource("meta/comp-no-id-input.dl");
+        String oracle = loadResource("meta/comp-no-id-oracle.dl");
+        assertEquivalent(oracle, proc.process(input, Set.of("author", "description")));
+    }
+
+    // ── Annotation inheritance and overriding ──────────────────────────────
+
+    @Test
+    void nestedCompInheritsAnnotationFromParent() throws IOException {
+        String input  = loadResource("meta/comp-nested-inherit-input.dl");
+        String oracle = loadResource("meta/comp-nested-inherit-oracle.dl");
+        assertEquivalent(oracle, proc.process(input, Set.of("author")));
+    }
+
+    @Test
+    void nestedCompOverridesParentAnnotation() throws IOException {
+        String input  = loadResource("meta/comp-nested-override-input.dl");
+        String oracle = loadResource("meta/comp-nested-override-oracle.dl");
+        assertEquivalent(oracle, proc.process(input, Set.of("author")));
+    }
+
+    @Test
+    void nestedCompInheritsOneAnnotationAndOverridesAnother() throws IOException {
+        // Outer has author + project; Inner overrides author only — Inner should
+        // inherit project at runtime via the _compHierarchy rule.
+        String input  = loadResource("meta/comp-partial-override-input.dl");
+        String oracle = loadResource("meta/comp-partial-override-oracle.dl");
+        assertEquivalent(oracle, proc.process(input, Set.of("author", "project")));
+    }
+
+    @Test
+    void deeplyNestedCompsGenerateChainedHierarchyFacts() throws IOException {
+        // Three levels: Top > Middle > Bottom.
+        // Inheritance is one hop from _assertedAnnotation, so Bottom inherits
+        // directly from Middle; transitive inheritance from Top is a runtime property.
+        String input  = loadResource("meta/comp-deeply-nested-input.dl");
+        String oracle = loadResource("meta/comp-deeply-nested-oracle.dl");
+        assertEquivalent(oracle, proc.process(input, Set.of("author", "project")));
+    }
+
+    @Test
+    void ruleInheritsAnnotationFromContainingComp() throws IOException {
+        String input  = loadResource("meta/comp-rule-inherits-input.dl");
+        String oracle = loadResource("meta/comp-rule-inherits-oracle.dl");
+        assertEquivalent(oracle, proc.process(input, Set.of("author")));
+    }
+
+    @Test
+    void ruleOverridesContainingCompAnnotation() throws IOException {
+        String input  = loadResource("meta/comp-rule-overrides-input.dl");
+        String oracle = loadResource("meta/comp-rule-overrides-oracle.dl");
+        assertEquivalent(oracle, proc.process(input, Set.of("author")));
+    }
+
+    // ── Souffle validation (requires Souffle ≥ 2.5 for @[...] annotation support) ──
+
+    @Test
+    void outputIsValidSouffle_compWithNoRuleId() throws Exception {
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String input  = loadResource("meta/comp-no-id-input.dl");
         String output = proc.process(input, Set.of("author", "description"));
+        SouffleFixture.assertValidSouffle(output);
+    }
+
+    @Test
+    void outputIsValidSouffle_compWithRuleAnnotations() throws Exception {
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String input  = loadResource("meta/comp-simple-input.dl");
+        String output = proc.process(input, Set.of("author", "description"));
+        SouffleFixture.assertValidSouffle(output);
+    }
+
+    @Test
+    void outputIsValidSouffle_nestedCompInheritance() throws Exception {
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String input  = loadResource("meta/comp-nested-inherit-input.dl");
+        String output = proc.process(input, Set.of("author"));
+        SouffleFixture.assertValidSouffle(output);
+    }
+
+    @Test
+    void outputIsValidSouffle_nestedCompOverride() throws Exception {
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String input  = loadResource("meta/comp-nested-override-input.dl");
+        String output = proc.process(input, Set.of("author"));
+        SouffleFixture.assertValidSouffle(output);
+    }
+
+    @Test
+    void outputIsValidSouffle_partialOverride() throws Exception {
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String input  = loadResource("meta/comp-partial-override-input.dl");
+        String output = proc.process(input, Set.of("author", "project"));
+        SouffleFixture.assertValidSouffle(output);
+    }
+
+    @Test
+    void outputIsValidSouffle_deeplyNested() throws Exception {
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String input  = loadResource("meta/comp-deeply-nested-input.dl");
+        String output = proc.process(input, Set.of("author", "project"));
+        SouffleFixture.assertValidSouffle(output);
+    }
+
+    @Test
+    void outputIsValidSouffle_ruleInheritsFromComp() throws Exception {
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String input  = loadResource("meta/comp-rule-inherits-input.dl");
+        String output = proc.process(input, Set.of("author"));
+        SouffleFixture.assertValidSouffle(output);
+    }
+
+    @Test
+    void outputIsValidSouffle_ruleOverridesComp() throws Exception {
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String input  = loadResource("meta/comp-rule-overrides-input.dl");
+        String output = proc.process(input, Set.of("author"));
         SouffleFixture.assertValidSouffle(output);
     }
 }

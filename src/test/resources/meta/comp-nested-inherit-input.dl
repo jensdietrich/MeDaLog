@@ -1,0 +1,4 @@
+@[author = "jens"]
+.comp Outer {
+    .comp Inner { }
+}

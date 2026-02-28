@@ -1,4 +1,5 @@
 .decl a(x: symbol)
 .decl b(x: symbol)
+b("hello").
 a(x) :- b(x).
 a(x) :- b(x).

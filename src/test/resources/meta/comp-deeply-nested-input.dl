@@ -1,0 +1,7 @@
+@[project = "medalog"]
+.comp Top {
+    @[author = "jens"]
+    .comp Middle {
+        .comp Bottom { }
+    }
+}

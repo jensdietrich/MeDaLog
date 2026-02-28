@@ -1,5 +1,4 @@
 @[author = "jens"]
-@[description = "family rules"]
 .comp Family {
     .decl parent(p: symbol, c: symbol)
     .decl grandparent(gp: symbol, gc: symbol)
@@ -8,7 +7,7 @@
     parent("Bob", "Ann").
 
     @[id = "gp-rule"]
-    @[description = "grandparent derivation"]
+    @[author = "alice"]
     grandparent(x, z) :- parent(x, y), parent(y, z).
 
     .output grandparent

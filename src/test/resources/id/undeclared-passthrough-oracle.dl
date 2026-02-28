@@ -1,2 +1,3 @@
 .decl foo(id: symbol, x: symbol)
+foo("F1", "hello").
 foo("r1", x) :- bar(x).
