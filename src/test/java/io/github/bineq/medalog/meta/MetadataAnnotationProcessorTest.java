@@ -6,6 +6,7 @@ import io.github.bineq.medalog.SouffleFixture;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -178,5 +179,114 @@ class MetadataAnnotationProcessorTest extends ProcessorTestBase {
         String input  = loadResource("meta/comp-rule-overrides-input.dl");
         String output = proc.process(input, Set.of("author"));
         SouffleFixture.assertValidSouffle(output);
+    }
+
+    // ── Souffle execution: verify inferred annotation facts ────────────────
+
+    @Test
+    void annotationFacts_compSimple() throws Exception {
+        // Family has author + description; gp-rule overrides description and inherits author.
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String output = proc.process(loadResource("meta/comp-simple-input.dl"), Set.of("author", "description"));
+        Set<List<String>> facts = SouffleFixture.runAndCollectAnnotations(output);
+        assertEquals(Set.of(
+                List.of("Family",  "author",      "jens"),
+                List.of("Family",  "description", "family rules"),
+                List.of("gp-rule", "description", "grandparent derivation"),
+                List.of("gp-rule", "author",      "jens")    // inherited from Family
+        ), facts);
+    }
+
+    @Test
+    void annotationFacts_compNoId() throws Exception {
+        // No rule IDs → only the component-level annotations are output.
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String output = proc.process(loadResource("meta/comp-no-id-input.dl"), Set.of("author", "description"));
+        Set<List<String>> facts = SouffleFixture.runAndCollectAnnotations(output);
+        assertEquals(Set.of(
+                List.of("Family", "author",      "jens"),
+                List.of("Family", "description", "family rules")
+        ), facts);
+    }
+
+    @Test
+    void annotationFacts_nestedCompInherit() throws Exception {
+        // Inner has no asserted author → it inherits from Outer.
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String output = proc.process(loadResource("meta/comp-nested-inherit-input.dl"), Set.of("author"));
+        Set<List<String>> facts = SouffleFixture.runAndCollectAnnotations(output);
+        assertEquals(Set.of(
+                List.of("Outer", "author", "jens"),
+                List.of("Inner", "author", "jens")  // inherited from Outer
+        ), facts);
+    }
+
+    @Test
+    void annotationFacts_nestedCompOverride() throws Exception {
+        // Inner asserts a different author → inheritance is suppressed for that key.
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String output = proc.process(loadResource("meta/comp-nested-override-input.dl"), Set.of("author"));
+        Set<List<String>> facts = SouffleFixture.runAndCollectAnnotations(output);
+        assertEquals(Set.of(
+                List.of("Outer", "author", "jens"),
+                List.of("Inner", "author", "alice")  // own assertion wins
+        ), facts);
+    }
+
+    @Test
+    void annotationFacts_partialOverride() throws Exception {
+        // Inner overrides author but not project → project is inherited from Outer.
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String output = proc.process(loadResource("meta/comp-partial-override-input.dl"), Set.of("author", "project"));
+        Set<List<String>> facts = SouffleFixture.runAndCollectAnnotations(output);
+        assertEquals(Set.of(
+                List.of("Outer", "author",  "jens"),
+                List.of("Outer", "project", "medalog"),
+                List.of("Inner", "author",  "alice"),    // overrides Outer
+                List.of("Inner", "project", "medalog")   // inherited from Outer
+        ), facts);
+    }
+
+    @Test
+    void annotationFacts_deeplyNested() throws Exception {
+        // Hierarchy: Top > Middle > Bottom.
+        // Inheritance uses _assertedAnnotation on the direct parent only (one hop).
+        // Middle inherits project from Top's asserted fact.
+        // Bottom inherits author from Middle's asserted fact.
+        // Bottom does NOT inherit project because Middle's project is inferred, not asserted.
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String output = proc.process(loadResource("meta/comp-deeply-nested-input.dl"), Set.of("author", "project"));
+        Set<List<String>> facts = SouffleFixture.runAndCollectAnnotations(output);
+        assertEquals(Set.of(
+                List.of("Top",    "project", "medalog"),
+                List.of("Middle", "author",  "jens"),
+                List.of("Middle", "project", "medalog"),  // inherits from Top (asserted)
+                List.of("Bottom", "author",  "jens")      // inherits from Middle (asserted)
+                // Bottom does NOT get project: Middle's project is inherited, not asserted
+        ), facts);
+    }
+
+    @Test
+    void annotationFacts_ruleInheritsFromComp() throws Exception {
+        // gp-rule has no asserted author → it inherits from Family.
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String output = proc.process(loadResource("meta/comp-rule-inherits-input.dl"), Set.of("author"));
+        Set<List<String>> facts = SouffleFixture.runAndCollectAnnotations(output);
+        assertEquals(Set.of(
+                List.of("Family",  "author", "jens"),
+                List.of("gp-rule", "author", "jens")  // inherited from Family
+        ), facts);
+    }
+
+    @Test
+    void annotationFacts_ruleOverridesComp() throws Exception {
+        // gp-rule asserts a different author → component-level value is not inherited.
+        SouffleFixture.assumeSouffleSupportsAnnotations();
+        String output = proc.process(loadResource("meta/comp-rule-overrides-input.dl"), Set.of("author"));
+        Set<List<String>> facts = SouffleFixture.runAndCollectAnnotations(output);
+        assertEquals(Set.of(
+                List.of("Family",  "author", "jens"),
+                List.of("gp-rule", "author", "alice")  // own assertion wins
+        ), facts);
     }
 }
