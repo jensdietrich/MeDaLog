@@ -1,5 +1,7 @@
 package io.github.bineq.medalog;
 
+import io.github.bineq.medalog.id.AggregationStrategy;
+import io.github.bineq.medalog.id.CatAggregationStrategy;
 import io.github.bineq.medalog.id.IdentityAnnotationProcessor;
 import io.github.bineq.medalog.meta.MetadataAnnotationProcessor;
 import org.apache.commons.cli.*;
@@ -15,12 +17,13 @@ import java.util.Set;
  * Command-line entry point for the MeDaLog annotation processors.
  *
  * <pre>
- * Usage: medalogc -processor &lt;id|metadata|all&gt; -input &lt;file&gt; -output &lt;file&gt; [-metadata &lt;keys&gt;]
+ * Usage: medalogc -processor &lt;id|metadata|all&gt; -input &lt;file&gt; -output &lt;file&gt; [-metadata &lt;keys&gt;] [-aggregation &lt;fqcn&gt;]
  *
- *   -processor   Which processor to run: id, metadata, or all
- *   -input       Input Souffle program file
- *   -output      Output Souffle program file
- *   -metadata    Comma-separated list of metadata annotation keys (used by metadata and all)
+ *   -processor      Which processor to run: id, metadata, or all
+ *   -input          Input Souffle program file
+ *   -output         Output Souffle program file
+ *   -metadata       Comma-separated list of metadata annotation keys (used by metadata and all)
+ *   -aggregation    Fully-qualified class name of an {@link AggregationStrategy} implementation
  * </pre>
  */
 public class Main {
@@ -50,6 +53,14 @@ public class Main {
         File input = new File(cmd.getOptionValue("input"));
         File output = new File(cmd.getOptionValue("output"));
         Set<String> metadataKeys = parseMetadataKeys(cmd.getOptionValue("metadata"));
+        AggregationStrategy strategy;
+        try {
+            strategy = loadStrategy(cmd.getOptionValue("aggregation"));
+        } catch (IllegalArgumentException e) {
+            System.err.println("Error: " + e.getMessage());
+            System.exit(1);
+            return;
+        }
 
         if (!input.exists()) {
             System.err.println("Error: input file not found: " + input);
@@ -61,7 +72,7 @@ public class Main {
             switch (processor) {
                 case "id" -> {
                     LOG.info("Running identity annotation processor: {} -> {}", input, output);
-                    new IdentityAnnotationProcessor().process(input, output);
+                    new IdentityAnnotationProcessor(strategy).process(input, output);
                 }
                 case "metadata" -> {
                     LOG.info("Running metadata annotation processor: {} -> {}", input, output);
@@ -72,7 +83,7 @@ public class Main {
                     LOG.info("Running all annotation processors: {} -> {}", input, output);
                     File intermediate = File.createTempFile("medalog-id-", ".dl");
                     intermediate.deleteOnExit();
-                    new IdentityAnnotationProcessor().process(input, intermediate);
+                    new IdentityAnnotationProcessor(strategy).process(input, intermediate);
                     new MetadataAnnotationProcessor().process(intermediate, output, metadataKeys);
                 }
                 default -> {
@@ -102,11 +113,34 @@ public class Main {
                 "Output Souffle program file");
         opts.addOption("m", "metadata", true,
                 "Comma-separated metadata annotation keys (e.g. author,description,created)");
+        opts.addOption("a", "aggregation", true,
+                "Fully-qualified class name of an AggregationStrategy implementation (default: CatAggregationStrategy)");
         return opts;
     }
 
     private static void printHelp(Options options) {
         new HelpFormatter().printHelp("medalogc", options, true);
+    }
+
+    static AggregationStrategy loadStrategy(String className) {
+        if (className == null || className.isBlank()) {
+            return new CatAggregationStrategy();
+        }
+        Class<?> clazz;
+        try {
+            clazz = Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException("AggregationStrategy class not found: " + className);
+        }
+        if (!AggregationStrategy.class.isAssignableFrom(clazz)) {
+            throw new IllegalArgumentException(
+                    className + " does not implement " + AggregationStrategy.class.getName());
+        }
+        try {
+            return (AggregationStrategy) clazz.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Cannot instantiate " + className + ": " + e.getMessage());
+        }
     }
 
     private static Set<String> parseMetadataKeys(String csv) {
