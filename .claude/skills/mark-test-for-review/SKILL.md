@@ -35,3 +35,4 @@ For each method level issue, include the following:
 - if resources and tests have changed, also include diffs, and links to the respective resources in the parent commits
 
 
+Prompt for the person to assign this to, list project members as choices.
