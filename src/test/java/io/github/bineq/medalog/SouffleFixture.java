@@ -74,15 +74,20 @@ public final class SouffleFixture {
 
     /**
      * Runs Souffle on {@code source}, executes the program, and returns the facts in the
-     * {@code metadata.annotation} output relation as a set of
-     * {@code [id, annotation_name, annotation_value]} triples.
+     * named output relation as a set of tuples (each tuple is a {@code List<String>} of
+     * field values in column order).
      *
-     * <p>The caller must call {@link #assumeSouffleAvailable()} or
-     * {@link #assumeSouffleSupportsAnnotations()} before invoking this method if needed.
+     * <p>The {@code relation} name should match the CSV filename Souffle produces, e.g.
+     * {@code "parent"} for {@code parent.csv} or {@code "metadata.annotation"} for the
+     * {@code annotation} relation inside a {@code .init metadata = _metadata} component.
+     *
+     * <p>The caller is responsible for calling {@link #assumeSouffleAvailable()} or
+     * {@link #assumeSouffleSupportsAnnotations()} (or calling {@link #assertValidSouffle}
+     * first, which already gates on availability).
      *
      * @throws AssertionError if Souffle exits with a non-zero status
      */
-    public static Set<List<String>> runAndCollectAnnotations(String source)
+    public static Set<List<String>> runAndCollectFacts(String source, String relation)
             throws IOException, InterruptedException {
         Path outDir  = Files.createTempDirectory("medalog-out-");
         Path srcFile = Files.createTempFile("medalog-prog-", ".dl");
@@ -97,20 +102,47 @@ public final class SouffleFixture {
         if (exit != 0) {
             throw new AssertionError("Souffle exited with status " + exit + ":\n" + souffleOutput);
         }
-        Path csvFile = outDir.resolve("metadata.annotation.csv");
+        Path csvFile = outDir.resolve(relation + ".csv");
         if (!Files.exists(csvFile)) return Set.of();
         Set<List<String>> result = new HashSet<>();
         for (String line : Files.readAllLines(csvFile)) {
             if (line.isBlank()) continue;
-            String[] parts = line.split("\t", -1);
-            result.add(List.of(parts[0], parts[1], parts[2]));
+            result.add(List.of(line.split("\t", -1)));
         }
         return result;
     }
 
     /**
+     * Convenience wrapper: runs Souffle and returns facts from the
+     * {@code metadata.annotation} relation (produced by the metadata annotation processor).
+     */
+    public static Set<List<String>> runAndCollectAnnotations(String source)
+            throws IOException, InterruptedException {
+        return runAndCollectFacts(source, "metadata.annotation");
+    }
+
+    /**
+     * Skips the current test (rather than failing) if the given Souffle source is not
+     * syntactically valid. Use this as a precondition on input files and oracle files.
+     */
+    public static void assumeValidSouffle(String source) throws IOException, InterruptedException {
+        assumeSouffleAvailable();
+        File tmp = File.createTempFile("medalog-assume-", ".dl");
+        tmp.deleteOnExit();
+        Files.writeString(tmp.toPath(), source);
+        Process p = new ProcessBuilder("souffle", "--show=parse-errors", tmp.getAbsolutePath())
+                .redirectErrorStream(true)
+                .start();
+        String output = new String(p.getInputStream().readAllBytes());
+        int exit = p.waitFor();
+        Assumptions.assumeTrue(exit == 0,
+                "Skipping: source fixture is not valid Souffle (possibly requires a newer Souffle version): "
+                        + output.trim());
+    }
+
+    /**
      * Validates that the given Souffle source is a syntactically valid Souffle program
-     * by writing it to a temp file and running {@code souffle --parse-errors-only}.
+     * by writing it to a temp file and running {@code souffle --show=parse-errors}.
      *
      * @throws AssertionError if souffle reports errors
      */

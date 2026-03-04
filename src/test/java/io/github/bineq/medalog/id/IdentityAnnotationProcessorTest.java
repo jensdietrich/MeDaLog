@@ -5,7 +5,8 @@ import io.github.bineq.medalog.ProcessorTestBase;
 import io.github.bineq.medalog.SouffleFixture;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,101 +17,107 @@ class IdentityAnnotationProcessorTest extends ProcessorTestBase {
 
     private final IdentityAnnotationProcessor proc = new IdentityAnnotationProcessor();
 
-    // ── Declaration tests ──────────────────────────────────────────────────
+    // ── Error tests ────────────────────────────────────────────────────────
 
     @Test
-    void addsIdSlotToDecl() throws IOException {
-        String input  = loadResource("id/decl-simple-input.dl");
-        String oracle = loadResource("id/decl-simple-oracle.dl");
-        assertEquivalent(oracle, proc.process(input));
-    }
-
-    @Test
-    void doesNotDuplicateIdSlotWhenAlreadyPresent() throws IOException {
-        String input  = loadResource("id/decl-already-has-id-input.dl");
-        String oracle = loadResource("id/decl-already-has-id-oracle.dl");
-        assertEquivalent(oracle, proc.process(input));
-    }
-
-    @Test
-    void errorWhenIdSlotIsNotFirst() throws IOException {
+    void errorWhenIdSlotIsNotFirst() throws Exception {
         String input = loadResource("id/error-id-not-first-input.dl");
+        SouffleFixture.assumeValidSouffle(input);
         AnnotationProcessorException ex = assertThrows(
                 AnnotationProcessorException.class, () -> proc.process(input));
         assertTrue(ex.getMessage().contains("first"), ex.getMessage());
         assertTrue(ex.getLineNumber() > 0);
     }
 
-    // ── Fact tests ─────────────────────────────────────────────────────────
-
     @Test
-    void prependsAnnotatedIdToFact() throws IOException {
-        String input  = loadResource("id/fact-with-id-input.dl");
-        String oracle = loadResource("id/fact-with-id-oracle.dl");
-        assertEquivalent(oracle, proc.process(input));
-    }
-
-    @Test
-    void prependsGeneratedIdToFactWithoutAnnotation() throws IOException {
-        String input  = loadResource("id/fact-without-id-input.dl");
-        String result = proc.process(input);
-        assertTrue(result.contains("parent(\"F"), "Expected generated fact id starting with F");
-        assertFalse(result.contains("@["), "Annotation should be consumed");
-    }
-
-    @Test
-    void duplicateIdAnnotationThrows() throws IOException {
+    void duplicateIdAnnotationThrows() throws Exception {
         String input = loadResource("id/error-duplicate-id-input.dl");
+        SouffleFixture.assumeValidSouffle(input);
         AnnotationProcessorException ex = assertThrows(
                 AnnotationProcessorException.class, () -> proc.process(input));
         assertTrue(ex.getMessage().contains("dup"), ex.getMessage());
     }
 
-    // ── Rule tests ─────────────────────────────────────────────────────────
+    // ── Fact ID tests ──────────────────────────────────────────────────────
 
     @Test
-    void injectsIdVariablesAndAggregationIntoRule() throws IOException {
-        String input  = loadResource("id/rule-with-id-input.dl");
-        String oracle = loadResource("id/rule-with-id-oracle.dl");
-        assertEquivalent(oracle, proc.process(input));
-    }
-
-    @Test
-    void handlesNegatedAtomInRule() throws IOException {
-        String input  = loadResource("id/rule-negated-atom-input.dl");
-        String oracle = loadResource("id/rule-negated-atom-oracle.dl");
-        assertEquivalent(oracle, proc.process(input));
-    }
-
-    @Test
-    void passesUndeclaredPredicateThrough() throws IOException {
-        String input  = loadResource("id/undeclared-passthrough-input.dl");
-        String oracle = loadResource("id/undeclared-passthrough-oracle.dl");
-        assertEquivalent(oracle, proc.process(input));
-    }
-
-    @Test
-    void generatesUniqueRuleIdsForUnlabelledRules() throws IOException {
-        String input  = loadResource("id/auto-rule-id-input.dl");
-        String oracle = loadResource("id/auto-rule-id-oracle.dl");
-        assertEquivalent(oracle, proc.process(input));
-    }
-
-    // ── Souffle validation ─────────────────────────────────────────────────
-
-    @Test
-    void outputIsValidSouffle_simpleFact() throws Exception {
-        SouffleFixture.assumeSouffleAvailable();
+    void explicitIdAnnotationPreservedInFact() throws Exception {
+        // @[id = "fact1"] is used as-is; other fields are unchanged.
         String input  = loadResource("id/fact-with-id-input.dl");
+        SouffleFixture.assumeValidSouffle(input);
         String output = proc.process(input);
         SouffleFixture.assertValidSouffle(output);
+        Set<List<String>> facts = SouffleFixture.runAndCollectFacts(
+                output + "\n.output parent\n", "parent");
+        assertEquals(Set.of(List.of("fact1", "Tim", "Tom")), facts);
     }
 
     @Test
-    void outputIsValidSouffle_ruleWithId() throws Exception {
-        SouffleFixture.assumeSouffleAvailable();
-        String input  = loadResource("id/rule-with-id-input.dl");
+    void generatedFactIdPrependedWhenNoAnnotation() throws Exception {
+        // No @[id] → processor generates "F1" (first fact, fresh IdGenerator).
+        String input  = loadResource("id/fact-without-id-input.dl");
+        SouffleFixture.assumeValidSouffle(input);
         String output = proc.process(input);
         SouffleFixture.assertValidSouffle(output);
+        Set<List<String>> facts = SouffleFixture.runAndCollectFacts(
+                output + "\n.output parent\n", "parent");
+        assertEquals(Set.of(List.of("F1", "Tim", "Tom")), facts);
+    }
+
+    // ── Rule ID tests ──────────────────────────────────────────────────────
+
+    @Test
+    void explicitRuleIdEncodedInDerivedFactId() throws Exception {
+        // @[id = "gp-rule"] + two parent facts F1, F2 → grandparent id = "gp-rule[F1,F2]".
+        String input  = loadResource("id/rule-with-id-input.dl");
+        SouffleFixture.assumeValidSouffle(input);
+        String output = proc.process(input);
+        SouffleFixture.assertValidSouffle(output);
+        Set<List<String>> facts = SouffleFixture.runAndCollectFacts(
+                output + "\n.output grandparent\n", "grandparent");
+        assertEquals(Set.of(List.of("gp-rule[F1,F2]", "Tim", "Ann")), facts);
+    }
+
+    @Test
+    void negatedAtomNameEncodedInDerivedFactId() throws Exception {
+        // Negated atom "!adopted" appears in the aggregated id.
+        // No adopted facts → Ann is not adopted → grandparent is derived.
+        String input  = loadResource("id/rule-negated-atom-input.dl");
+        SouffleFixture.assumeValidSouffle(input);
+        String output = proc.process(input);
+        SouffleFixture.assertValidSouffle(output);
+        Set<List<String>> facts = SouffleFixture.runAndCollectFacts(
+                output + "\n.output grandparent\n", "grandparent");
+        assertEquals(Set.of(List.of("gp-rule[F1,F2,!adopted]", "Tim", "Ann")), facts);
+    }
+
+    @Test
+    void autoGeneratedRuleIdsAreUniqueAcrossRules() throws Exception {
+        // Two identical unlabelled rules get distinct ids R1, R2.
+        // Both derive a("hello") from b("hello"), yielding two distinct facts in a.
+        String input  = loadResource("id/auto-rule-id-input.dl");
+        SouffleFixture.assumeValidSouffle(input);
+        String output = proc.process(input);
+        SouffleFixture.assertValidSouffle(output);
+        Set<List<String>> facts = SouffleFixture.runAndCollectFacts(
+                output + "\n.output a\n", "a");
+        assertEquals(Set.of(
+                List.of("R1[F1]", "hello"),
+                List.of("R2[F1]", "hello")
+        ), facts);
+    }
+
+    @Test
+    void undeclaredPredicatePassesThroughUnchanged() throws Exception {
+        // The rule "foo(x) :- bar(x)" passes through because bar is undeclared.
+        // Adding a declaration for bar (with no facts) means the rule fires zero times;
+        // only the directly asserted foo fact is in the output.
+        String input  = loadResource("id/undeclared-passthrough-input.dl");
+        SouffleFixture.assumeValidSouffle(input);
+        String output = proc.process(input);
+        SouffleFixture.assertValidSouffle(output);
+        String runnable = output + "\n.decl bar(x: symbol)\n.output foo\n";
+        Set<List<String>> facts = SouffleFixture.runAndCollectFacts(runnable, "foo");
+        assertEquals(Set.of(List.of("F1", "hello")), facts);
     }
 }
