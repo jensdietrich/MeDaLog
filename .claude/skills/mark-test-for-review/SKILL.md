@@ -23,6 +23,8 @@ If any changes, additions or deletions are detected, create a new issue (called 
 - name this issue `review-AI-generated-tests-<counter>-<classname>-<methodname>`
 - label each of those methodlevel issues as `review-AI-generated`
 - use the GitHub sub-issues API to create subissues
+  - IMPORTANT: the sub-issues API requires the issue's internal database `id` (integer), NOT the issue number. Fetch it with: `curl -s -H "Authorization: Bearer $(gh auth token)" "https://api.github.com/repos/{owner}/{repo}/issues/{number}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])"`
+  - Then POST: `curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -H "Content-Type: application/json" -d "{\"sub_issue_id\":$INTERNAL_ID}" "https://api.github.com/repos/{owner}/{repo}/issues/{parent_number}/sub_issues"`
 
 If no changes are detected, report that and stop.
 
