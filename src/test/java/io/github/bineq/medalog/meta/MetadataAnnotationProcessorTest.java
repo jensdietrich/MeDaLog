@@ -5,6 +5,7 @@ import io.github.bineq.medalog.ProcessorTestBase;
 import io.github.bineq.medalog.SouffleFixture;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -37,6 +38,13 @@ class MetadataAnnotationProcessorTest extends ProcessorTestBase {
                 AnnotationProcessorException.class,
                 () -> proc.process(input, Set.of("author")));
         assertTrue(ex.getMessage().contains("author"), ex.getMessage());
+    }
+
+    @Test
+    void emptyInputProducesNoMetadataComponent() throws IOException {
+        String input  = loadResource("meta/no-annotations-input.dl");
+        String oracle = loadResource("meta/no-annotations-oracle.dl");
+        assertEquivalent(oracle, proc.process(input, Set.of("author")));
     }
 
     // ── Annotation fact tests (run Souffle, check inferred annotation relation) ──
