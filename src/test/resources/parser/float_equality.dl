@@ -1,0 +1,14 @@
+// Souffle - A Datalog Compiler
+// Copyright (c) 2020, The Souffle Developers. All rights reserved
+// Licensed under the Universal Permissive License v 1.0 as shown at:
+// - https://opensource.org/licenses/UPL
+// - <souffle root>/licenses/SOUFFLE-UPL.txt
+//
+// Source: tests/evaluation/float_equality/float_equality.dl
+// Tests float type and recursive rules with float arithmetic (-0.0 equality)
+
+.decl A(x:float)
+.output A
+
+A(0.0).
+A(x+1) :- A(x), x = -0.0.

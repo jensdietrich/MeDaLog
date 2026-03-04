@@ -1,0 +1,16 @@
+// Souffle - A Datalog Compiler
+// Copyright (c) 2020, The Souffle Developers. All rights reserved
+// Licensed under the Universal Permissive License v 1.0 as shown at:
+// - https://opensource.org/licenses/UPL
+// - <souffle root>/licenses/SOUFFLE-UPL.txt
+//
+// Source: tests/evaluation/facts2/facts2.dl
+// Tests constant expressions in facts: cat(), to_string()
+
+.decl A(x: symbol)
+
+A(cat("meow ", "meow")).
+A(to_string(10)).
+A(to_string(-10)).
+
+.output A()

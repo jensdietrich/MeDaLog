@@ -1,0 +1,10 @@
+// Source: tests/evaluation/number_constants/number_constants.dl
+// Tests numeric constants including extremes of 32-bit signed integer range
+
+.decl R(n:number)
+.output R()
+R(0).
+R(1).
+R(-1).
+R(2147483647).
+R(-2147483648).

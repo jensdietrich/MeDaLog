@@ -90,7 +90,7 @@ declQualifier
     ;
 
 typeDirective
-    : TYPE IDENTIFIER (EQ typeUnion | LBRACKET slotList RBRACKET | LT IDENTIFIER)
+    : TYPE IDENTIFIER (EQ typeUnion | LBRACKET slotList RBRACKET | LT COLON IDENTIFIER)
     ;
 
 typeUnion
@@ -172,9 +172,9 @@ rule_
     : head IMPL body DOT
     ;
 
-// Head: one atom or a semicolon-separated list (disjunctive head)
+// Head: one atom, or a semicolon-separated disjunctive head, or a comma-separated conjunctive head
 head
-    : atom (SEMICOLON atom)*
+    : atom ((SEMICOLON | COMMA) atom)*
     ;
 
 // Body: disjunction of conjunctions

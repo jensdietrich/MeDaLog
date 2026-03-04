@@ -1,0 +1,20 @@
+// Souffle - A Datalog Compiler
+// Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved
+// Licensed under the Universal Permissive License v 1.0 as shown at:
+// - https://opensource.org/licenses/UPL
+// - <souffle root>/licenses/SOUFFLE-UPL.txt
+//
+// Source: tests/evaluation/inline_unification/inline_unification.dl
+// Tests alpha-reduction in inlined relations; modulo arithmetic in rule bodies
+
+.decl a(x:number, y:number) inline
+a(0, 0).
+a(x, y) :- b(x), b(y), x != y.
+
+.decl b(x:number)
+b(0).
+b(x+1) :- b(x), x < 10.
+
+.decl c(x:number, y:number)
+c(x, y) :- a(y, x), x % 2 != 0, x = y - 2.
+.output c()

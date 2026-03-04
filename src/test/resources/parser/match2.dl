@@ -1,0 +1,21 @@
+// Source: tests/evaluation/match2/match2.dl
+// Tests built-in match() regex predicate with pattern strings
+
+.type String <: symbol
+
+.decl inputData   (t:String)
+.decl pattern   (t:String)
+.decl outputData  (t:String)
+.output outputData  ()
+
+pattern("a.*").
+pattern("b.*").
+
+inputData("aaaa").
+inputData("a").
+inputData("abba").
+inputData("bcab").
+inputData("bdab").
+inputData("cdab").
+
+outputData(x) :- pattern(y), inputData(x), match(y, x).

@@ -1,0 +1,15 @@
+// Source: tests/syntactic/string/string.dl
+// Tests string literals with whitespace, escape sequences, and .printsize directive
+
+.type s <: symbol
+
+.decl Fact(x:s)
+
+// Check whitespace is accepted
+Fact("baz ").
+Fact("baz	").
+// Check escaping of quotes and escapes
+Fact("\\").
+Fact("\\\"").
+
+.printsize Fact

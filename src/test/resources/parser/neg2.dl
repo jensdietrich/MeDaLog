@@ -1,0 +1,20 @@
+// Source: tests/evaluation/neg2/neg2.dl
+// Tests negation with transitivity (contradictory Z rule produces empty set)
+
+.type Set <: symbol
+
+.decl X(node1:Set, node2:Set)
+.output X()
+.decl Y(node1:Set, node2:Set)
+.output Y()
+.decl Z(node1:Set, node2:Set)
+.output Z()
+
+// Negation -- empty set for Z
+Y(a,b) :- X(a,b).
+Y(a,c) :- X(a,b), Y(b,c).
+Z(a,b) :- !X(a,b), Y(a,b), X(a,b).
+
+X("a","b").
+X("b","c").
+X("c","d").
