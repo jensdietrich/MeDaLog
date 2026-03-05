@@ -118,6 +118,17 @@ public class MetadataAnnotationProcessor {
         // id → component id (for rules and facts inside components)
         Map<String, String> membership = new LinkedHashMap<>();
 
+        // ── Pre-pass: detect any @[id] annotations ───────────────────────
+        boolean[] hasIdAnnotation = {false};
+        ParseTreeWalker.DEFAULT.walk(new SouffleBaseListener() {
+            @Override
+            public void enterAnnotationPair(AnnotationPairContext ctx) {
+                if ("id".equals(ctx.annotationKey().getText())) {
+                    hasIdAnnotation[0] = true;
+                }
+            }
+        }, tree);
+
         // ── Collect phase ─────────────────────────────────────────────────
         // Stack to track the enclosing component chain
         Deque<String> compStack = new ArrayDeque<>();
@@ -130,6 +141,31 @@ public class MetadataAnnotationProcessor {
             @Override
             public void enterItem(ItemContext ctx) {
                 currentAnnotations = ctx.annotation();
+            }
+
+            @Override
+            public void enterDeclDirective(DeclDirectiveContext ctx) {
+                String predName = ctx.qualifiedName().getText();
+                boolean hasIdSlot = false;
+                SlotListContext slots = ctx.slotList();
+                if (slots != null) {
+                    for (SlotContext s : slots.slot()) {
+                        if ("id".equals(s.IDENTIFIER().getText())) {
+                            hasIdSlot = true;
+                            break;
+                        }
+                    }
+                }
+                if (!hasIdSlot) {
+                    int line = ctx.getStart().getLine();
+                    if (hasIdAnnotation[0]) {
+                        LOG.warn("Line {}: predicate '{}' has no 'id' slot" +
+                                " — consider running the identity annotation processor first",
+                                line, predName);
+                    } else {
+                        LOG.warn("Line {}: predicate '{}' has no 'id' slot", line, predName);
+                    }
+                }
             }
 
             @Override
