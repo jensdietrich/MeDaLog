@@ -1,0 +1,4 @@
+.decl IDB_IS_TRANSITIVE(id: symbol, classOrMethodOrFieldId: symbol)
+@[id = "R_IS_TRANSITIVE"]
+IDB_IS_TRANSITIVE(classOrMethodOrFieldId) :- IDB_ACCESS(classOrMethodOrFieldId,access),(access band 0x0020)!=0.
+.output IDB_IS_TRANSITIVE

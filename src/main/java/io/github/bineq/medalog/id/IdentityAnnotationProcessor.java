@@ -214,7 +214,14 @@ public class IdentityAnnotationProcessor {
                 for (AtomContext headAtom : ctx.head().atom()) {
                     String pred = headAtom.qualifiedName().getText();
                     if (!declared.contains(pred)) continue;
-                    String aggExpr = strategy.generateId("\"" + ruleId + "\"", idParts);
+                    List<String> headAtomArgs = new ArrayList<>();
+                    ArgListContext headArgList = headAtom.argList();
+                    if (headArgList != null) {
+                        for (ArgContext arg : headArgList.arg()) {
+                            headAtomArgs.add(arg.getText());
+                        }
+                    }
+                    String aggExpr = strategy.generateId("\"" + ruleId + "\"", idParts, headAtomArgs);
                     insertFirstArg(headAtom, aggExpr, rewriter);
                 }
             }
