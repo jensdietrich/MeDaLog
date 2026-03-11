@@ -10,10 +10,13 @@ import java.util.List;
 public class CustomTestStrategy implements AggregationStrategy {
 
     @Override
-    public String generateId(String ruleId, List<String> bodyIds) {
-        if (bodyIds.isEmpty()) {
-            return ruleId;
+    public String generateId(String ruleId, List<String> bodyIds, List<String> headArgs) {
+        if (!bodyIds.isEmpty()) {
+            return ruleId + "|" + String.join(",", bodyIds);
         }
-        return ruleId + "|" + String.join(",", bodyIds);
+        if (!headArgs.isEmpty()) {
+            return ruleId + "|" + String.join(",", headArgs);
+        }
+        return ruleId;
     }
 }

@@ -19,11 +19,14 @@ import java.util.List;
 public class CatAggregationStrategy implements AggregationStrategy {
 
     @Override
-    public String generateId(String ruleId, List<String> bodyIds) {
-        if (bodyIds.isEmpty()) {
-            return ruleId;
+    public String generateId(String ruleId, List<String> bodyIds, List<String> headArgs) {
+        if (!bodyIds.isEmpty()) {
+            return "cat(" + ruleId + ", cat(\"[\", " + buildInner(bodyIds, 0) + "))";
         }
-        return "cat(" + ruleId + ", cat(\"[\", " + buildInner(bodyIds, 0) + "))";
+        if (!headArgs.isEmpty()) {
+            return buildFlatCat(ruleId, headArgs, 0);
+        }
+        return ruleId;
     }
 
     private String buildInner(List<String> bodyIds, int index) {
@@ -32,5 +35,10 @@ public class CatAggregationStrategy implements AggregationStrategy {
             return "cat(" + current + ", \"]\")";
         }
         return "cat(" + current + ", cat(\",\", " + buildInner(bodyIds, index + 1) + "))";
+    }
+
+    private String buildFlatCat(String prefix, List<String> args, int index) {
+        if (index >= args.size()) return prefix;
+        return buildFlatCat("cat(" + prefix + ", " + args.get(index) + ")", args, index + 1);
     }
 }
